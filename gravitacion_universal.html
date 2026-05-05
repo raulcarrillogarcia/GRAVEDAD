@@ -1,0 +1,1149 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gravitación Universal — Satélites en Órbita</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --earth: #1a3a5c;
+    --space: #03050f;
+    --accent: #f5a623;
+    --accent2: #4fc3f7;
+    --text: #e8e8e8;
+    --muted: #7a8a9a;
+    --card-bg: rgba(255,255,255,0.04);
+    --card-border: rgba(255,255,255,0.08);
+    --green: #4caf50;
+    --red: #ef5350;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'Syne', sans-serif;
+    background: var(--space);
+    color: var(--text);
+    overflow-x: hidden;
+  }
+
+  /* ── STARFIELD ── */
+  #stars {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background: radial-gradient(ellipse at 20% 50%, #0a1628 0%, #03050f 70%);
+  }
+  #stars canvas { width:100%; height:100%; }
+
+  /* ── NAV ── */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 3rem;
+    height: 60px;
+    background: rgba(3,5,15,0.8);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--card-border);
+  }
+  .nav-logo {
+    font-family: 'Space Mono', monospace;
+    font-size: 13px;
+    color: var(--accent);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  .nav-links { display: flex; gap: 2rem; }
+  .nav-links a {
+    font-size: 13px;
+    color: var(--muted);
+    text-decoration: none;
+    font-family: 'Space Mono', monospace;
+    letter-spacing: 0.05em;
+    transition: color .2s;
+  }
+  .nav-links a:hover { color: var(--text); }
+
+  /* ── SECTIONS ── */
+  section {
+    position: relative; z-index: 1;
+    min-height: 100vh;
+    padding: 120px 3rem 80px;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+  section.full { max-width: 100%; padding-left: 0; padding-right: 0; }
+
+  /* ── HERO ── */
+  #hero {
+    display: flex; flex-direction: column;
+    justify-content: center; align-items: flex-start;
+    padding-top: 140px;
+  }
+  .hero-eyebrow {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 1.5rem;
+    opacity: 0; animation: fadeUp .8s .2s forwards;
+  }
+  .hero-title {
+    font-size: clamp(3rem, 8vw, 6.5rem);
+    font-weight: 800;
+    line-height: 0.95;
+    letter-spacing: -0.02em;
+    margin-bottom: 2rem;
+    opacity: 0; animation: fadeUp .8s .4s forwards;
+  }
+  .hero-title span { color: var(--accent); }
+  .hero-sub {
+    font-family: 'Space Mono', monospace;
+    font-size: 14px;
+    line-height: 1.8;
+    color: var(--muted);
+    max-width: 540px;
+    margin-bottom: 3rem;
+    opacity: 0; animation: fadeUp .8s .6s forwards;
+  }
+  .hero-formula {
+    display: inline-block;
+    font-family: 'Space Mono', monospace;
+    font-size: clamp(1.4rem, 3vw, 2.2rem);
+    background: linear-gradient(135deg, rgba(245,166,35,0.12), rgba(79,195,247,0.08));
+    border: 1px solid rgba(245,166,35,0.3);
+    border-radius: 8px;
+    padding: 1.25rem 2rem;
+    color: var(--accent);
+    opacity: 0; animation: fadeUp .8s .8s forwards;
+    position: relative;
+  }
+  .hero-formula::before {
+    content: 'LEY DE NEWTON, 1687';
+    position: absolute; top: -10px; left: 1rem;
+    font-size: 9px; letter-spacing: 0.15em;
+    background: var(--space); padding: 0 6px;
+    color: var(--muted);
+  }
+  .scroll-hint {
+    position: absolute; bottom: 3rem; left: 50%; transform: translateX(-50%);
+    font-family: 'Space Mono', monospace;
+    font-size: 10px; letter-spacing: 0.2em; color: var(--muted);
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+    opacity: 0; animation: fadeUp 1s 1.2s forwards;
+  }
+  .scroll-hint::after {
+    content: '';
+    width: 1px; height: 40px;
+    background: linear-gradient(to bottom, var(--muted), transparent);
+    animation: pulse 2s infinite;
+  }
+
+  /* ── SIMULATOR ── */
+  #simulador { padding-top: 100px; }
+  .sim-layout {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 2rem;
+    align-items: start;
+  }
+  .sim-canvas-wrap {
+    background: #03050f;
+    border: 1px solid var(--card-border);
+    border-radius: 16px;
+    overflow: hidden;
+    position: relative;
+  }
+  canvas#sim { display: block; width: 100%; }
+  .sim-overlay {
+    position: absolute; top: 1rem; left: 1rem;
+    font-family: 'Space Mono', monospace; font-size: 10px;
+    color: rgba(245,166,35,0.7); letter-spacing: 0.1em;
+  }
+  .sim-panel {
+    display: flex; flex-direction: column; gap: 1rem;
+  }
+  .sim-card {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    padding: 1.25rem;
+  }
+  .sim-card h3 {
+    font-size: 11px; letter-spacing: 0.15em;
+    text-transform: uppercase; color: var(--muted);
+    font-family: 'Space Mono', monospace;
+    margin-bottom: 1rem;
+  }
+  .slider-group { margin-bottom: .75rem; }
+  .slider-label {
+    display: flex; justify-content: space-between;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px; margin-bottom: 6px;
+    color: var(--muted);
+  }
+  .slider-label span { color: var(--text); font-weight: 700; }
+  input[type=range] {
+    width: 100%; height: 3px;
+    -webkit-appearance: none; appearance: none;
+    background: rgba(255,255,255,0.1);
+    border-radius: 2px; outline: none; cursor: pointer;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px; height: 14px; border-radius: 50%;
+    background: var(--accent); border: 2px solid var(--space);
+    cursor: pointer; transition: transform .15s;
+  }
+  input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.3); }
+  .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .stat-box {
+    background: rgba(0,0,0,0.3);
+    border: 1px solid var(--card-border);
+    border-radius: 8px;
+    padding: .6rem .75rem;
+  }
+  .stat-box .lbl { font-family: 'Space Mono', monospace; font-size: 9px; letter-spacing: 0.1em; color: var(--muted); margin-bottom: 3px; }
+  .stat-box .val { font-family: 'Space Mono', monospace; font-size: 13px; font-weight: 700; color: var(--accent2); }
+  .orbit-state {
+    text-align: center; padding: .75rem;
+    border-radius: 8px; font-family: 'Space Mono', monospace;
+    font-size: 11px; letter-spacing: 0.1em; font-weight: 700;
+    border: 1px solid; margin-top: .5rem;
+    transition: all .4s;
+  }
+
+  /* ── LEY SECTION ── */
+  #ley { padding-top: 100px; }
+  .section-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px; letter-spacing: 0.2em;
+    text-transform: uppercase; color: var(--accent);
+    margin-bottom: 1rem;
+  }
+  .section-title {
+    font-size: clamp(2rem, 4vw, 3.5rem);
+    font-weight: 800; line-height: 1.05;
+    letter-spacing: -0.02em;
+    margin-bottom: 2rem;
+  }
+  .var-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem; margin: 2rem 0;
+  }
+  .var-card {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    padding: 1.25rem;
+    position: relative;
+    overflow: hidden;
+    transition: border-color .3s, transform .3s;
+  }
+  .var-card:hover { border-color: rgba(245,166,35,0.3); transform: translateY(-3px); }
+  .var-card::before {
+    content: attr(data-sym);
+    position: absolute; right: .75rem; top: .5rem;
+    font-family: 'Space Mono', monospace;
+    font-size: 2.5rem; font-weight: 700;
+    color: rgba(245,166,35,0.08);
+    line-height: 1;
+  }
+  .var-card .sym { font-family: 'Space Mono', monospace; font-size: 1.4rem; color: var(--accent); font-weight: 700; margin-bottom: .5rem; }
+  .var-card .name { font-size: 13px; font-weight: 600; margin-bottom: .25rem; }
+  .var-card .desc { font-size: 12px; color: var(--muted); line-height: 1.5; font-family: 'Space Mono', monospace; }
+
+  .explain-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-top: 3rem; }
+  .explain-block { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 16px; padding: 2rem; }
+  .explain-block h3 { font-size: 1.1rem; font-weight: 700; margin-bottom: 1rem; }
+  .explain-block p { font-family: 'Space Mono', monospace; font-size: 12px; line-height: 1.8; color: var(--muted); }
+
+  /* ── ÓRBITA ── */
+  #orbita { padding-top: 100px; }
+  .orbit-types-wrap { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin: 2rem 0; }
+  .otype {
+    background: var(--card-bg); border: 1px solid var(--card-border);
+    border-radius: 16px; padding: 1.75rem 1.5rem;
+    cursor: pointer; transition: all .3s;
+    position: relative; overflow: hidden;
+  }
+  .otype::after {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(135deg, rgba(245,166,35,0.06), transparent);
+    opacity: 0; transition: opacity .3s;
+  }
+  .otype:hover::after, .otype.active::after { opacity: 1; }
+  .otype.active { border-color: rgba(245,166,35,0.5); }
+  .otype .tag {
+    font-family: 'Space Mono', monospace; font-size: 10px;
+    letter-spacing: 0.15em; color: var(--accent); margin-bottom: .5rem;
+  }
+  .otype .title { font-size: 1.3rem; font-weight: 800; margin-bottom: .5rem; }
+  .otype .alt { font-family: 'Space Mono', monospace; font-size: 11px; color: var(--muted); margin-bottom: 1rem; }
+  .otype .apps { font-size: 12px; color: var(--text); line-height: 1.6; }
+  .orbit-detail {
+    background: var(--card-bg); border: 1px solid var(--card-border);
+    border-radius: 16px; padding: 2rem;
+    display: grid; grid-template-columns: 1fr 1fr 1fr;
+    gap: 1.5rem;
+  }
+  .od-block .od-label { font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 0.12em; color: var(--muted); margin-bottom: 4px; }
+  .od-block .od-val { font-family: 'Space Mono', monospace; font-size: 1rem; font-weight: 700; color: var(--accent2); }
+
+  /* ── IMPACTO ── */
+  #impacto { padding-top: 100px; }
+  .impact-bento {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: auto auto;
+    gap: 1rem;
+    margin: 2rem 0;
+  }
+  .bento-card {
+    background: var(--card-bg); border: 1px solid var(--card-border);
+    border-radius: 16px; padding: 1.75rem;
+    transition: all .3s;
+    position: relative; overflow: hidden;
+  }
+  .bento-card:hover { border-color: rgba(255,255,255,0.15); transform: translateY(-2px); }
+  .bento-card.wide { grid-column: span 2; }
+  .bento-card .ico { font-size: 1.8rem; margin-bottom: .75rem; }
+  .bento-card h3 { font-size: 1.05rem; font-weight: 700; margin-bottom: .5rem; }
+  .bento-card p { font-size: 12px; color: var(--muted); line-height: 1.7; font-family: 'Space Mono', monospace; }
+  .bento-card .big-num { font-size: 3rem; font-weight: 800; color: var(--accent); line-height: 1; margin-bottom: .25rem; }
+  .bento-card .big-label { font-family: 'Space Mono', monospace; font-size: 11px; color: var(--muted); }
+
+  /* ── ÉTICA ── */
+  #etica { padding-top: 100px; }
+  .eth-list { display: flex; flex-direction: column; gap: 1rem; margin-top: 2rem; }
+  .eth-item {
+    display: flex; gap: 1.5rem; align-items: flex-start;
+    background: var(--card-bg); border: 1px solid var(--card-border);
+    border-radius: 12px; padding: 1.5rem;
+    transition: all .3s;
+  }
+  .eth-item:hover { border-color: rgba(255,255,255,0.12); }
+  .eth-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; margin-top: 6px; }
+  .eth-item h3 { font-size: 1rem; font-weight: 700; margin-bottom: .4rem; }
+  .eth-item p { font-size: 12px; color: var(--muted); line-height: 1.7; font-family: 'Space Mono', monospace; }
+
+  /* ── REFLEXIÓN ── */
+  #reflexion { padding-top: 100px; }
+  .ref-timeline { position: relative; padding-left: 2rem; margin-top: 2rem; }
+  .ref-timeline::before {
+    content: '';
+    position: absolute; left: 0; top: 8px; bottom: 8px;
+    width: 1px; background: linear-gradient(to bottom, var(--accent), transparent);
+  }
+  .ref-item { position: relative; padding-bottom: 2.5rem; }
+  .ref-item::before {
+    content: '';
+    position: absolute; left: -2rem; top: 6px;
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--accent); border: 2px solid var(--space);
+    box-shadow: 0 0 8px var(--accent);
+  }
+  .ref-year { font-family: 'Space Mono', monospace; font-size: 11px; color: var(--accent); letter-spacing: 0.1em; margin-bottom: 4px; }
+  .ref-title { font-size: 1.05rem; font-weight: 700; margin-bottom: .4rem; }
+  .ref-text { font-family: 'Space Mono', monospace; font-size: 12px; color: var(--muted); line-height: 1.7; }
+
+  /* ── AUTOEVALUACIÓN ── */
+  #autoevaluacion { padding-top: 100px; }
+  .eval-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 2rem; }
+  .eval-item {
+    background: var(--card-bg); border: 1px solid var(--card-border);
+    border-radius: 12px; padding: 1rem 1.25rem;
+    display: flex; align-items: flex-start; gap: 1rem;
+    cursor: pointer; transition: all .3s;
+    user-select: none;
+  }
+  .eval-item.done { border-color: rgba(76,175,80,0.4); background: rgba(76,175,80,0.06); }
+  .eval-check {
+    width: 20px; height: 20px; border-radius: 50%;
+    border: 1.5px solid var(--muted); flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    transition: all .3s; font-size: 11px;
+  }
+  .eval-item.done .eval-check { border-color: var(--green); background: var(--green); }
+  .eval-text { font-size: 13px; line-height: 1.5; }
+  .eval-progress {
+    margin-top: 2rem; background: var(--card-bg);
+    border: 1px solid var(--card-border); border-radius: 12px;
+    padding: 1.5rem;
+  }
+  .progress-track {
+    height: 4px; background: rgba(255,255,255,0.06);
+    border-radius: 2px; overflow: hidden; margin: 1rem 0;
+  }
+  .progress-fill {
+    height: 100%; border-radius: 2px;
+    background: linear-gradient(90deg, var(--green), var(--accent2));
+    transition: width .6s cubic-bezier(.4,0,.2,1);
+  }
+  .progress-labels {
+    display: flex; justify-content: space-between;
+    font-family: 'Space Mono', monospace; font-size: 11px; color: var(--muted);
+  }
+
+  /* ── FOOTER ── */
+  footer {
+    position: relative; z-index: 1;
+    text-align: center; padding: 3rem;
+    border-top: 1px solid var(--card-border);
+    font-family: 'Space Mono', monospace;
+    font-size: 11px; color: var(--muted);
+    letter-spacing: 0.1em;
+  }
+
+  /* ── ANIMATIONS ── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; } 50% { opacity: 0.3; }
+  }
+  @keyframes float {
+    0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); }
+  }
+
+  .reveal {
+    opacity: 0; transform: translateY(24px);
+    transition: opacity .7s ease, transform .7s ease;
+  }
+  .reveal.visible { opacity: 1; transform: translateY(0); }
+
+  /* ── EDITOR MODE ── */
+  .edit-trigger {
+    position: fixed; bottom: 2rem; right: 2rem; z-index: 200;
+    width: 44px; height: 44px; border-radius: 50%;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    font-size: 18px; transition: all .3s; color: var(--muted);
+  }
+  .edit-trigger:hover { border-color: rgba(245,166,35,0.4); color: var(--accent); }
+
+  #code-modal {
+    position: fixed; inset: 0; z-index: 300;
+    background: rgba(3,5,15,0.92); backdrop-filter: blur(16px);
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; pointer-events: none; transition: opacity .3s;
+  }
+  #code-modal.open { opacity: 1; pointer-events: all; }
+  .code-box {
+    background: #0c0e1a; border: 1px solid rgba(245,166,35,0.2);
+    border-radius: 20px; padding: 2.5rem; width: 340px; text-align: center;
+    transform: translateY(20px); transition: transform .3s;
+  }
+  #code-modal.open .code-box { transform: translateY(0); }
+  .code-box .lock-icon { font-size: 2.5rem; margin-bottom: 1rem; }
+  .code-box h3 { font-size: 1rem; font-weight: 700; margin-bottom: .4rem; }
+  .code-box p { font-family: 'Space Mono', monospace; font-size: 11px; color: var(--muted); margin-bottom: 1.5rem; line-height: 1.6; }
+  .code-inputs { display: flex; gap: 10px; justify-content: center; margin-bottom: 1.5rem; }
+  .code-digit {
+    width: 52px; height: 64px; border-radius: 10px;
+    background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.12);
+    font-family: 'Space Mono', monospace; font-size: 1.8rem; font-weight: 700;
+    color: var(--accent); text-align: center; outline: none;
+    transition: border-color .2s; caret-color: var(--accent);
+  }
+  .code-digit:focus { border-color: rgba(245,166,35,0.6); }
+  .code-error { font-family: 'Space Mono', monospace; font-size: 11px; color: var(--red); height: 16px; margin-bottom: .75rem; transition: opacity .3s; }
+  .code-cancel {
+    font-family: 'Space Mono', monospace; font-size: 11px; color: var(--muted);
+    background: none; border: none; cursor: pointer; text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+  .code-cancel:hover { color: var(--text); }
+
+  /* Editor toolbar */
+  #editor-bar {
+    position: fixed; top: 60px; left: 0; right: 0; z-index: 150;
+    background: rgba(15,17,35,0.97); border-bottom: 1px solid rgba(245,166,35,0.2);
+    padding: .6rem 2rem; display: flex; align-items: center; gap: 1.5rem;
+    transform: translateY(-100%); transition: transform .4s cubic-bezier(.4,0,.2,1);
+    backdrop-filter: blur(12px);
+  }
+  #editor-bar.open { transform: translateY(0); }
+  .ebar-label { font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 0.15em; color: var(--accent); }
+  .ebar-hint { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--muted); flex: 1; }
+  .ebar-btn {
+    font-family: 'Space Mono', monospace; font-size: 11px;
+    background: none; border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 6px; padding: 5px 12px; color: var(--text);
+    cursor: pointer; transition: all .2s;
+  }
+  .ebar-btn:hover { border-color: rgba(245,166,35,0.5); color: var(--accent); }
+  .ebar-btn.danger { border-color: rgba(239,83,80,0.3); color: var(--red); }
+  .ebar-btn.danger:hover { border-color: var(--red); }
+
+  /* Editable elements in edit mode */
+  body.edit-mode [data-editable] {
+    outline: 1px dashed rgba(245,166,35,0.35);
+    outline-offset: 3px;
+    border-radius: 4px;
+    cursor: text;
+    transition: outline-color .2s, background .2s;
+  }
+  body.edit-mode [data-editable]:hover {
+    outline-color: rgba(245,166,35,0.8);
+    background: rgba(245,166,35,0.04);
+  }
+  body.edit-mode [data-editable]:focus {
+    outline: 2px solid var(--accent);
+    background: rgba(245,166,35,0.06);
+  }
+  .edit-badge {
+    position: fixed; bottom: 2rem; left: 2rem; z-index: 200;
+    font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 0.12em;
+    background: rgba(245,166,35,0.12); border: 1px solid rgba(245,166,35,0.35);
+    color: var(--accent); border-radius: 20px; padding: 6px 14px;
+    opacity: 0; pointer-events: none; transition: opacity .3s;
+  }
+  body.edit-mode .edit-badge { opacity: 1; }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 900px) {
+    nav { padding: 0 1.5rem; }
+    .nav-links { display: none; }
+    section { padding: 80px 1.5rem 60px; }
+    .sim-layout { grid-template-columns: 1fr; }
+    .explain-grid, .orbit-types-wrap, .impact-bento, .eval-grid { grid-template-columns: 1fr; }
+    .bento-card.wide { grid-column: span 1; }
+    .orbit-detail { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Starfield -->
+<div id="stars"><canvas id="starsCanvas"></canvas></div>
+
+<!-- Secret editor trigger -->
+<button class="edit-trigger" onclick="openCodeModal()" title="Modo edicion">&#9998;</button>
+<div class="edit-badge">&#9998; MODO EDICION ACTIVO</div>
+
+<!-- Code modal -->
+<div id="code-modal">
+  <div class="code-box">
+    <div class="lock-icon">&#128274;</div>
+    <h3>Acceso restringido</h3>
+    <p>Introduce el codigo de 4 digitos para activar el modo de edicion de contenido.</p>
+    <div class="code-inputs">
+      <input class="code-digit" id="d0" type="password" maxlength="1" inputmode="numeric">
+      <input class="code-digit" id="d1" type="password" maxlength="1" inputmode="numeric">
+      <input class="code-digit" id="d2" type="password" maxlength="1" inputmode="numeric">
+      <input class="code-digit" id="d3" type="password" maxlength="1" inputmode="numeric">
+    </div>
+    <div class="code-error" id="code-error"></div>
+    <button class="code-cancel" onclick="closeCodeModal()">Cancelar</button>
+  </div>
+</div>
+
+<!-- Editor toolbar -->
+<div id="editor-bar">
+  <span class="ebar-label">&#9998; MODO EDICION</span>
+  <span class="ebar-hint">Haz clic en cualquier texto resaltado para editarlo directamente</span>
+  <button class="ebar-btn" onclick="saveEdits()">Guardar HTML</button>
+  <button class="ebar-btn danger" onclick="exitEditMode()">Salir</button>
+</div>
+
+<!-- Nav -->
+<nav>
+  <div class="nav-logo">F = GMm/r²</div>
+  <div class="nav-links">
+    <a href="#simulador">Simulador</a>
+    <a href="#ley">La Ley</a>
+    <a href="#orbita">Órbitas</a>
+    <a href="#impacto">Impacto</a>
+    <a href="#reflexion">Reflexión</a>
+    <a href="#autoevaluacion">Autoevaluación</a>
+  </div>
+</nav>
+
+<!-- Hero -->
+<section id="hero">
+  <div class="hero-eyebrow" data-editable contenteditable="false">Física · Ley de Gravitación Universal · Satélites</div>
+  <h1 class="hero-title" data-editable contenteditable="false">La fuerza<br>que mueve<br><span>el mundo</span></h1>
+  <p class="hero-sub" data-editable contenteditable="false">Isaac Newton describió en 1687 una fuerza invisible que mantiene los planetas en órbita, hace caer las manzanas y, siglos después, permite que 30 000 satélites artificiales rodeen la Tierra.</p>
+  <div class="hero-formula">F = G · (M · m) / r²</div>
+  <div class="scroll-hint">EXPLORAR</div>
+</section>
+
+<!-- Simulador -->
+<section id="simulador">
+  <div class="section-label reveal">Simulación interactiva</div>
+  <h2 class="section-title reveal">Pon un satélite<br>en órbita</h2>
+  <p class="reveal" style="font-family:'Space Mono',monospace;font-size:13px;color:var(--muted);margin-bottom:2rem;max-width:600px">Ajusta la altitud y la velocidad y observa cómo la fuerza gravitatoria de Newton determina si el satélite orbita, cae o escapa. Todo se calcula en tiempo real con F = GMm/r².</p>
+
+  <div class="sim-layout reveal">
+    <div class="sim-canvas-wrap">
+      <canvas id="sim" height="480"></canvas>
+      <div class="sim-overlay">SIMULACIÓN EN TIEMPO REAL</div>
+    </div>
+
+    <div class="sim-panel">
+      <div class="sim-card">
+        <h3>Parámetros orbitales</h3>
+        <div class="slider-group">
+          <div class="slider-label">Altitud <span id="lbl-alt">500 km</span></div>
+          <input type="range" id="sl-alt" min="200" max="36000" value="500" step="100">
+        </div>
+        <div class="slider-group">
+          <div class="slider-label">Velocidad <span id="lbl-vel">100%</span></div>
+          <input type="range" id="sl-vel" min="40" max="160" value="100" step="1">
+        </div>
+        <div class="slider-group">
+          <div class="slider-label">Masa Tierra <span id="lbl-masa">100%</span></div>
+          <input type="range" id="sl-masa" min="20" max="200" value="100" step="5">
+        </div>
+      </div>
+
+      <div class="sim-card">
+        <h3>Datos calculados con F = GMm/r²</h3>
+        <div class="stats-grid">
+          <div class="stat-box"><div class="lbl">VELOCIDAD ORBITAL</div><div class="val" id="sv">—</div></div>
+          <div class="stat-box"><div class="lbl">PERÍODO</div><div class="val" id="sp">—</div></div>
+          <div class="stat-box"><div class="lbl">FUERZA GRAV.</div><div class="val" id="sf">—</div></div>
+          <div class="stat-box"><div class="lbl">DISTANCIA CENTRO</div><div class="val" id="sr">—</div></div>
+        </div>
+        <div class="orbit-state" id="orbit-state">—</div>
+      </div>
+
+      <div class="sim-card">
+        <h3>¿Qué está pasando?</h3>
+        <p id="sim-explain" style="font-family:'Space Mono',monospace;font-size:11px;color:var(--muted);line-height:1.7">—</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- La Ley -->
+<section id="ley">
+  <div class="section-label reveal">Newton, 1687</div>
+  <h2 class="section-title reveal">La Ley de<br>Gravitación Universal</h2>
+  <p class="reveal" style="font-family:'Space Mono',monospace;font-size:13px;color:var(--muted);max-width:600px;margin-bottom:2rem">Todo cuerpo con masa atrae a otro con una fuerza directamente proporcional al producto de sus masas e inversamente proporcional al cuadrado de la distancia entre ellos.</p>
+
+  <div class="var-grid reveal">
+    <div class="var-card" data-sym="F">
+      <div class="sym">F</div>
+      <div class="name" data-editable contenteditable="false">Fuerza gravitatoria</div>
+      <div class="desc" data-editable contenteditable="false">Medida en Newtons (N). Es la fuerza de atracción mutua entre dos cuerpos.</div>
+    </div>
+    <div class="var-card" data-sym="G">
+      <div class="sym">G</div>
+      <div class="name" data-editable contenteditable="false">Constante gravitacional</div>
+      <div class="desc" data-editable contenteditable="false">6.674 × 10⁻¹¹ N·m²/kg². Universal: igual en todo el universo.</div>
+    </div>
+    <div class="var-card" data-sym="M">
+      <div class="sym">M · m</div>
+      <div class="name" data-editable contenteditable="false">Masas de los cuerpos</div>
+      <div class="desc" data-editable contenteditable="false">M = masa de la Tierra (5.97 × 10²⁴ kg). m = masa del satélite.</div>
+    </div>
+    <div class="var-card" data-sym="r">
+      <div class="sym">r²</div>
+      <div class="name" data-editable contenteditable="false">Distancia al cuadrado</div>
+      <div class="desc" data-editable contenteditable="false">r = distancia entre centros. Si r × 2, la fuerza ÷ 4. Relación inversa al cuadrado.</div>
+    </div>
+  </div>
+
+  <div class="explain-grid reveal">
+    <div class="explain-block">
+      <h3 data-editable contenteditable="false">¿Cómo orbita un satélite?</h3>
+      <p data-editable contenteditable="false">Un satélite no "flota" sin gravedad. Cae constantemente hacia la Tierra, pero se desplaza tan rápido horizontalmente que la curvatura de la Tierra hace que el suelo "se aleje" bajo él.<br><br>
+      La gravedad actúa como fuerza centrípeta. Cuando esta iguala la fuerza centrífuga, la órbita es circular y estable.</p>
+    </div>
+    <div class="explain-block">
+      <h3 data-editable contenteditable="false">Velocidad orbital circular</h3>
+      <p data-editable contenteditable="false">De F = GMm/r² se puede deducir que la velocidad circular es:<br><br>
+      <strong style="color:var(--accent);font-size:1.1rem">v = √(GM/r)</strong><br><br>
+      Sorprendente: la masa del satélite no importa. Un satélite de 1 kg y uno de 10 000 kg necesitan exactamente la misma velocidad si están a la misma altitud.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Tipos de órbita -->
+<section id="orbita">
+  <div class="section-label reveal">Ingeniería orbital</div>
+  <h2 class="section-title reveal">Cada misión,<br>su órbita</h2>
+  <p class="reveal" style="font-family:'Space Mono',monospace;font-size:13px;color:var(--muted);max-width:600px;margin-bottom:2rem">La Ley de Gravitación Universal define los límites de lo posible. Los ingenieros eligen la altitud óptima según la función del satélite.</p>
+
+  <div class="orbit-types-wrap reveal">
+    <div class="otype active" id="ot-leo" onclick="selectOrbit('leo')">
+      <div class="tag" data-editable contenteditable="false">ÓRBITA BAJA</div>
+      <div class="title">LEO</div>
+      <div class="alt" data-editable contenteditable="false">200 – 2 000 km</div>
+      <div class="apps" data-editable contenteditable="false">ISS, Starlink, satélites de observación terrestre, Hubble</div>
+    </div>
+    <div class="otype" id="ot-meo" onclick="selectOrbit('meo')">
+      <div class="tag" data-editable contenteditable="false">ÓRBITA MEDIA</div>
+      <div class="title">MEO</div>
+      <div class="alt" data-editable contenteditable="false">2 000 – 36 000 km</div>
+      <div class="apps" data-editable contenteditable="false">GPS, Galileo, GLONASS — sistemas de navegación global</div>
+    </div>
+    <div class="otype" id="ot-geo" onclick="selectOrbit('geo')">
+      <div class="tag" data-editable contenteditable="false">GEOESTACIONARIA</div>
+      <div class="title">GEO</div>
+      <div class="alt" data-editable contenteditable="false">35 786 km exactos</div>
+      <div class="apps" data-editable contenteditable="false">Televisión, internet satelital, meteorología</div>
+    </div>
+  </div>
+
+  <div class="orbit-detail reveal" id="orbit-detail">
+    <div class="od-block"><div class="od-label">VELOCIDAD ORBITAL</div><div class="od-val" id="od-vel">—</div></div>
+    <div class="od-block"><div class="od-label">PERÍODO</div><div class="od-val" id="od-per">—</div></div>
+    <div class="od-block"><div class="od-label">LATENCIA SEÑAL</div><div class="od-val" id="od-lat">—</div></div>
+  </div>
+
+  <div style="margin-top:2rem;background:var(--card-bg);border:1px solid var(--card-border);border-radius:16px;padding:2rem" class="reveal">
+    <h3 style="font-size:1rem;margin-bottom:1rem">¿Por qué la GEO está exactamente a 35 786 km?</h3>
+    <p style="font-family:'Space Mono',monospace;font-size:12px;color:var(--muted);line-height:1.8">La distancia geoestacionaria no es arbitraria: se obtiene directamente de F = GMm/r² igualando la fuerza gravitatoria con la fuerza centrípeta de una órbita con período T = 24 h. Despejando r: <strong style="color:var(--accent)">r = ∛(GM·T²/4π²)</strong>. Con los valores de la Tierra, el resultado es exactamente 42 164 km desde el centro, es decir, 35 786 km sobre la superficie. La física dicta el número; la ingeniería lo aprovecha.</p>
+  </div>
+</section>
+
+<!-- Impacto -->
+<section id="impacto">
+  <div class="section-label reveal">Consecuencias tecnológicas</div>
+  <h2 class="section-title reveal">Una ecuación<br>que transformó<br>el mundo</h2>
+
+  <div class="impact-bento reveal">
+    <div class="bento-card wide">
+      <div class="ico">🛰</div>
+      <h3 data-editable contenteditable="false">Telecomunicaciones globales</h3>
+      <p data-editable contenteditable="false">Más de 5 000 millones de personas acceden a servicios que dependen de satélites: llamadas internacionales, internet en zonas remotas, televisión y transferencias financieras. La cobertura global solo es posible porque la Ley de Gravitación permite colocar satélites en puntos exactos del espacio.</p>
+    </div>
+    <div class="bento-card">
+      <div class="big-num" data-editable contenteditable="false">31</div>
+      <div class="big-label" data-editable contenteditable="false">SATÉLITES GPS ACTIVOS</div>
+      <p style="margin-top:.75rem" data-editable contenteditable="false">Cada uno a ~20 200 km. Precisión de metros. Sin la fórmula F = GMm/r², no se podría calcular ninguna órbita estable.</p>
+    </div>
+    <div class="bento-card">
+      <div class="ico">🌍</div>
+      <h3 data-editable contenteditable="false">Observación terrestre</h3>
+      <p data-editable contenteditable="false">Monitoreo de glaciares, deforestación, erupciones volcánicas y catástrofes en tiempo real. Los satélites de observación en LEO polar cubren toda la Tierra en 24h.</p>
+    </div>
+    <div class="bento-card">
+      <div class="ico">🌩</div>
+      <h3 data-editable contenteditable="false">Meteorología y predicción</h3>
+      <p data-editable contenteditable="false">Los satélites meteorológicos geoestacionarios observan la misma zona 24h al día. Los modelos de predicción que advierten sobre huracanes dependen de esta cobertura continua.</p>
+    </div>
+    <div class="bento-card">
+      <div class="big-num" data-editable contenteditable="false">$280B</div>
+      <div class="big-label" data-editable contenteditable="false">ECONOMÍA ESPACIAL ANUAL</div>
+      <p style="margin-top:.75rem" data-editable contenteditable="false">La industria satelital global. Fundada sobre la misma ley que describió Newton en un libro de 1687.</p>
+    </div>
+    <div class="bento-card">
+      <div class="ico">🔭</div>
+      <h3 data-editable contenteditable="false">Investigación científica</h3>
+      <p data-editable contenteditable="false">El Hubble, el Webb, sondas interplanetarias, misiones a Marte. Todo calculado aplicando F = GMm/r² a la mecánica orbital.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Ética -->
+<section id="etica">
+  <div class="section-label reveal">Implicaciones éticas y políticas</div>
+  <h2 class="section-title reveal">El espacio<br>no es neutral</h2>
+
+  <div class="eth-list reveal">
+    <div class="eth-item">
+      <div class="eth-dot" style="background:#ef5350"></div>
+      <div>
+        <h3>Basura espacial — el síndrome de Kessler</h3>
+        <p>Más de 27 000 fragmentos rastreados orbitan la Tierra a 7–8 km/s. Una colisión en cadena podría hacer ciertas órbitas inutilizables durante siglos, bloqueando GPS, comunicaciones y observación. La Ley de Gravitación no solo explica las órbitas útiles: también describe la dinámica de los escombros.</p>
+      </div>
+    </div>
+    <div class="eth-item">
+      <div class="eth-dot" style="background:#f5a623"></div>
+      <div>
+        <h3>Militarización del espacio</h3>
+        <p>Satélites de reconocimiento espían desde LEO. Sistemas de comunicación militar usan GEO. Misiles balísticos intercontinentales viajan por trayectorias suborbitales calculadas con las mismas ecuaciones. La Ley de Gravitación no tiene moralidad; sus aplicaciones sí necesitan supervisión.</p>
+      </div>
+    </div>
+    <div class="eth-item">
+      <div class="eth-dot" style="background:#4fc3f7"></div>
+      <div>
+        <h3>Soberanía espacial y acceso equitativo</h3>
+        <p>Las órbitas son un recurso finito. Las frecuencias GEO y las bandas de radio están saturándose. Los países en desarrollo tienen acceso limitado. ¿Quién decide quién puede colocar satélites y dónde? La física establece las posibilidades; la política establece las reglas.</p>
+      </div>
+    </div>
+    <div class="eth-item">
+      <div class="eth-dot" style="background:#4caf50"></div>
+      <div>
+        <h3>Monitoreo ambiental global</h3>
+        <p>Los satélites permiten medir el retroceso glaciar, la temperatura oceánica, las emisiones de CO₂ y los incendios forestales con una objetividad que ningún estado puede manipular. La misma tecnología que puede vigilar personas también vigila el planeta que habitamos.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Reflexión -->
+<section id="reflexion">
+  <div class="section-label reveal">De la ciencia básica al presente</div>
+  <h2 class="section-title reveal">Una ley, tres<br>siglos de impacto</h2>
+  <p class="reveal" style="font-family:'Space Mono',monospace;font-size:13px;color:var(--muted);max-width:600px;margin-bottom:2rem">Newton no imaginaba satélites. La investigación científica fundamental no necesita justificar su utilidad inmediata. La historia demuestra que las ecuaciones más abstractas se convierten en las tecnologías más transformadoras.</p>
+
+  <div class="ref-timeline reveal">
+    <div class="ref-item">
+      <div class="ref-year">1687</div>
+      <div class="ref-title">Principia Mathematica — Newton</div>
+      <div class="ref-text">Newton publica F = GMm/r². Ciencia básica pura. Sin aplicación tecnológica inmediata. Sin financiación industrial. Solo curiosidad intelectual sobre por qué cae una manzana y por qué la Luna no cae.</div>
+    </div>
+    <div class="ref-item">
+      <div class="ref-year">1957</div>
+      <div class="ref-title">Sputnik — primer satélite artificial</div>
+      <div class="ref-text">La URSS lanza el primer objeto artificial en órbita. Los ingenieros aplicaron exactamente la ecuación de Newton. 270 años después de ser formulada, la ley permite al ser humano colocar objetos fuera de la atmósfera.</div>
+    </div>
+    <div class="ref-item">
+      <div class="ref-year">1978</div>
+      <div class="ref-title">GPS — primer satélite de navegación</div>
+      <div class="ref-text">El Departamento de Defensa de EE.UU. lanza el primer satélite GPS. Cada receptor de bolsillo que calcula tu posición resuelve en tiempo real un sistema de ecuaciones basado en F = GMm/r².</div>
+    </div>
+    <div class="ref-item">
+      <div class="ref-year">2019</div>
+      <div class="ref-title">Starlink — 6 000+ satélites en órbita</div>
+      <div class="ref-text">SpaceX comienza a desplegar una constelación masiva en LEO. Cada lanzamiento coloca decenas de satélites en las órbitas exactas calculadas por la misma ley de Newton. La física fundamental se convierte en infraestructura de internet global.</div>
+    </div>
+    <div class="ref-item">
+      <div class="ref-year">Hoy</div>
+      <div class="ref-title">+9 000 satélites activos en órbita</div>
+      <div class="ref-text">Comunicaciones, navegación, meteorología, investigación, defensa, agricultura de precisión, respuesta a desastres. Todo esto existe porque un científico del siglo XVII se preguntó qué fuerza hace orbitar a la Luna.</div>
+    </div>
+  </div>
+</section>
+
+<!-- Autoevaluación -->
+<section id="autoevaluacion">
+  <div class="section-label reveal">Proceso de aprendizaje</div>
+  <h2 class="section-title reveal">Autoevaluación</h2>
+  <p class="reveal" style="font-family:'Space Mono',monospace;font-size:13px;color:var(--muted);max-width:600px;margin-bottom:1rem">Marca los objetivos que sientes haber comprendido durante esta investigación. Reflexiona honestamente sobre tu proceso de aprendizaje.</p>
+
+  <div class="eval-grid reveal" id="eval-grid">
+    <div class="eval-item" onclick="toggleEval(this)">
+      <div class="eval-check">✓</div>
+      <div class="eval-text">Comprendo la fórmula F = GMm/r² y el significado físico de cada variable</div>
+    </div>
+    <div class="eval-item" onclick="toggleEval(this)">
+      <div class="eval-check">✓</div>
+      <div class="eval-text">Entiendo por qué un satélite no cae: equilibrio entre gravedad y velocidad orbital</div>
+    </div>
+    <div class="eval-item" onclick="toggleEval(this)">
+      <div class="eval-check">✓</div>
+      <div class="eval-text">Sé que la velocidad orbital no depende de la masa del satélite, solo de la altitud</div>
+    </div>
+    <div class="eval-item" onclick="toggleEval(this)">
+      <div class="eval-check">✓</div>
+      <div class="eval-text">Conozco las diferencias entre LEO, MEO y GEO y para qué se usa cada una</div>
+    </div>
+    <div class="eval-item" onclick="toggleEval(this)">
+      <div class="eval-check">✓</div>
+      <div class="eval-text">Reconozco el impacto de los satélites en comunicaciones, GPS, meteorología y ciencia</div>
+    </div>
+    <div class="eval-item" onclick="toggleEval(this)">
+      <div class="eval-check">✓</div>
+      <div class="eval-text">He reflexionado sobre las implicaciones éticas: basura espacial, militarización, acceso equitativo</div>
+    </div>
+    <div class="eval-item" onclick="toggleEval(this)">
+      <div class="eval-check">✓</div>
+      <div class="eval-text">Valoro la importancia de la investigación científica básica a largo plazo</div>
+    </div>
+    <div class="eval-item" onclick="toggleEval(this)">
+      <div class="eval-check">✓</div>
+      <div class="eval-text">He desarrollado habilidades de análisis, pensamiento crítico y conexión de conceptos</div>
+    </div>
+  </div>
+
+  <div class="eval-progress reveal">
+    <div style="font-family:'Space Mono',monospace;font-size:11px;letter-spacing:0.1em;color:var(--muted)">PROGRESO DE APRENDIZAJE</div>
+    <div class="progress-track"><div class="progress-fill" id="prog-fill" style="width:0%"></div></div>
+    <div class="progress-labels">
+      <span id="prog-count">0 / 8 objetivos</span>
+      <span id="prog-pct">0%</span>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div style="margin-bottom:.5rem;font-size:1.5rem;letter-spacing:.2em">F = GMm/r²</div>
+  Ley de Gravitación Universal · Isaac Newton · 1687<br>
+  Recurso educativo — Física 4º ESO / 1º Bachillerato
+</footer>
+
+<script>
+/* ── STARFIELD ── */
+(function() {
+  const canvas = document.getElementById('starsCanvas');
+  const ctx = canvas.getContext('2d');
+  let W, H, stars = [];
+  function init() {
+    W = canvas.width = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+    stars = Array.from({length: 200}, () => ({
+      x: Math.random() * W, y: Math.random() * H,
+      r: Math.random() * 1.4, a: Math.random()
+    }));
+  }
+  function draw() {
+    ctx.clearRect(0,0,W,H);
+    stars.forEach(s => {
+      s.a += 0.003 * (Math.random() - 0.5);
+      s.a = Math.max(0.1, Math.min(0.9, s.a));
+      ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI*2);
+      ctx.fillStyle = `rgba(255,255,255,${s.a})`; ctx.fill();
+    });
+    requestAnimationFrame(draw);
+  }
+  window.addEventListener('resize', init);
+  init(); draw();
+})();
+
+/* ── REVEAL ON SCROLL ── */
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+}, { threshold: 0.1 });
+document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+/* ── SIMULATOR ── */
+const G = 6.674e-11, M0 = 5.972e24, Re = 6371000;
+let angle = 0, trail = [], rafId = null;
+
+const simCanvas = document.getElementById('sim');
+const ctx = simCanvas.getContext('2d');
+const slAlt  = document.getElementById('sl-alt');
+const slVel  = document.getElementById('sl-vel');
+const slMasa = document.getElementById('sl-masa');
+
+function getParams() {
+  const alt = parseInt(slAlt.value) * 1000;
+  const velPct = parseInt(slVel.value) / 100;
+  const masaPct = parseInt(slMasa.value) / 100;
+  const M = M0 * masaPct;
+  const r = Re + alt;
+  const v0 = Math.sqrt(G * M / r);
+  const v = v0 * velPct;
+  const T = 2 * Math.PI * r / v;
+  const F = G * M * 1 / (r * r);
+  return { alt, velPct, M, r, v, v0, T, F };
+}
+
+function updateLabels() {
+  const { alt, velPct, v, T, F, r } = getParams();
+  document.getElementById('lbl-alt').textContent = (parseInt(slAlt.value)).toLocaleString() + ' km';
+  document.getElementById('lbl-vel').textContent = parseInt(slVel.value) + '%';
+  document.getElementById('lbl-masa').textContent = parseInt(slMasa.value) + '%';
+  document.getElementById('sv').textContent = (v/1000).toFixed(2) + ' km/s';
+  const Tm = T/60;
+  document.getElementById('sp').textContent = Tm < 90 ? Math.round(Tm) + ' min' : (Tm/60).toFixed(1) + ' h';
+  document.getElementById('sf').textContent = F.toFixed(2) + ' N/kg';
+  document.getElementById('sr').textContent = Math.round(r/1000).toLocaleString() + ' km';
+
+  const pct = parseInt(slVel.value);
+  let state, color, explain;
+  if (pct < 60) {
+    state = '▼ REENTRADA — el satélite cae';
+    color = '#ef5350'; color2 = 'rgba(239,83,80,0.15)';
+    explain = 'La velocidad es demasiado baja para compensar la curvatura de la Tierra. La fuerza gravitatoria (F = GMm/r²) supera la fuerza centrífuga y el satélite cae en espiral hacia la atmósfera.';
+  } else if (pct < 95) {
+    state = '↙ Órbita elíptica baja';
+    color = '#f5a623'; color2 = 'rgba(245,166,35,0.12)';
+    explain = 'La velocidad es inferior a la circular. La órbita es elíptica: el satélite se acerca a la Tierra en el perigeo y se aleja en el apogeo. La energía total (cinética + potencial) determina la forma.';
+  } else if (pct <= 105) {
+    state = '✓ Órbita circular estable';
+    color = '#4caf50'; color2 = 'rgba(76,175,80,0.12)';
+    explain = 'La velocidad iguala exactamente √(GM/r). La fuerza gravitatoria (F = GMm/r²) actúa como fuerza centrípeta perfecta, manteniendo la distancia constante. El satélite sigue una trayectoria circular.';
+  } else if (pct < 141) {
+    state = '↗ Órbita elíptica alta';
+    color = '#4fc3f7'; color2 = 'rgba(79,195,247,0.12)';
+    explain = 'La velocidad supera la orbital circular. La órbita se vuelve elíptica: el satélite se aleja más en el apogeo. A medida que la velocidad crece, la elipse se alarga.';
+  } else {
+    state = '↑ ESCAPE — sale del sistema';
+    color = '#ce93d8'; color2 = 'rgba(206,147,216,0.12)';
+    explain = 'La velocidad supera la velocidad de escape √(2GM/r). La energía cinética supera la potencial gravitatoria y el satélite no puede ser retenido por la gravedad terrestre.';
+  }
+
+  const stEl = document.getElementById('orbit-state');
+  stEl.textContent = state;
+  stEl.style.borderColor = color;
+  stEl.style.color = color;
+  stEl.style.background = color2;
+  document.getElementById('sim-explain').textContent = explain;
+}
+
+function drawSim() {
+  const W = simCanvas.offsetWidth;
+  const H_canvas = 480;
+  simCanvas.width = W * devicePixelRatio;
+  simCanvas.height = H_canvas * devicePixelRatio;
+  ctx.scale(devicePixelRatio, devicePixelRatio);
+
+  const cx = W / 2, cy = H_canvas / 2;
+  const { alt, velPct, r, v0 } = getParams();
+
+  // BG
+  ctx.fillStyle = '#03050f'; ctx.fillRect(0,0,W,H_canvas);
+
+  // Grid rings
+  for (let i = 1; i <= 4; i++) {
+    ctx.beginPath();
+    ctx.arc(cx, cy, i * 60, 0, Math.PI*2);
+    ctx.strokeStyle = 'rgba(255,255,255,0.03)';
+    ctx.lineWidth = 1; ctx.stroke();
+  }
+
+  // Earth
+  const earthR = 52;
+  const earthGrad = ctx.createRadialGradient(cx-8, cy-10, 4, cx, cy, earthR);
+  earthGrad.addColorStop(0, '#3a7bd5');
+  earthGrad.addColorStop(0.5, '#1e4fa0');
+  earthGrad.addColorStop(1, '#0d2a5e');
+  ctx.beginPath(); ctx.arc(cx, cy, earthR, 0, Math.PI*2);
+  ctx.fillStyle = earthGrad; ctx.fill();
+  // Continents
+  ctx.fillStyle = 'rgba(80,180,80,0.5)';
+  ctx.beginPath(); ctx.ellipse(cx-10, cy+5, 18, 9, -0.3, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(cx+16, cy-10, 12, 7, 0.5, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(cx-20, cy-15, 8, 5, 0.8, 0, Math.PI*2); ctx.fill();
+  // Atmosphere glow
+  const atmGrad = ctx.createRadialGradient(cx, cy, earthR-4, cx, cy, earthR+12);
+  atmGrad.addColorStop(0, 'rgba(100,180,255,0.15)');
+  atmGrad.addColorStop(1, 'rgba(100,180,255,0)');
+  ctx.beginPath(); ctx.arc(cx, cy, earthR+12, 0, Math.PI*2);
+  ctx.fillStyle = atmGrad; ctx.fill();
+
+  // Orbit radius (visual)
+  const minAlt = 200000, maxAlt = 36000000;
+  const maxVis = Math.min(cx - earthR - 20, cy - earthR - 20);
+  const orbitVisR = earthR + ((alt - minAlt) / (maxAlt - minAlt)) * (maxVis - earthR);
+
+  // Velocity factor for ellipse
+  const vPct = parseInt(slVel.value) / 100;
+  const ecc = Math.max(0, Math.abs(vPct - 1) * 0.7);
+  const a = orbitVisR, b = orbitVisR * Math.max(0.1, 1 - ecc * 0.6);
+
+  // Orbit path
+  ctx.beginPath();
+  ctx.ellipse(cx, cy, a, b, 0, 0, Math.PI*2);
+  let orbitColor = vPct >= 0.95 && vPct <= 1.05 ? 'rgba(76,175,80,0.4)' : 'rgba(100,160,255,0.25)';
+  ctx.strokeStyle = orbitColor;
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([5,5]); ctx.stroke(); ctx.setLineDash([]);
+
+  // Trail
+  trail.push({ x: cx + a * Math.cos(angle), y: cy + b * Math.sin(angle) });
+  if (trail.length > 80) trail.shift();
+  trail.forEach((pt, i) => {
+    const alpha = i / trail.length * 0.5;
+    ctx.beginPath(); ctx.arc(pt.x, pt.y, 1.5, 0, Math.PI*2);
+    ctx.fillStyle = `rgba(245,166,35,${alpha})`; ctx.fill();
+  });
+
+  // Satellite position
+  const sx = cx + a * Math.cos(angle);
+  const sy = cy + b * Math.sin(angle);
+
+  // Gravity vector (toward center)
+  const gvLen = 28;
+  const gvAngle = Math.atan2(cy - sy, cx - sx);
+  ctx.beginPath();
+  ctx.moveTo(sx, sy);
+  ctx.lineTo(sx + Math.cos(gvAngle) * gvLen, sy + Math.sin(gvAngle) * gvLen);
+  ctx.strokeStyle = 'rgba(239,83,80,0.7)'; ctx.lineWidth = 1.5;
+  ctx.setLineDash([]); ctx.stroke();
+  ctx.fillStyle = 'rgba(239,83,80,0.7)';
+  ctx.beginPath();
+  const arrowEnd = {x: sx + Math.cos(gvAngle)*gvLen, y: sy + Math.sin(gvAngle)*gvLen};
+  drawArrow(ctx, arrowEnd.x, arrowEnd.y, gvAngle, 6);
+
+  // Velocity vector (tangent)
+  const vvAngle = angle + Math.PI/2;
+  const vvLen = Math.min(25, 15 + vPct * 8);
+  ctx.beginPath();
+  ctx.moveTo(sx, sy);
+  ctx.lineTo(sx + Math.cos(vvAngle) * vvLen, sy + Math.sin(vvAngle) * vvLen);
+  ctx.strokeStyle = 'rgba(79,195,247,0.7)'; ctx.lineWidth = 1.5; ctx.stroke();
+  const vEnd = {x: sx + Math.cos(vvAngle)*vvLen, y: sy + Math.sin(vvAngle)*vvLen};
+  ctx.fillStyle = 'rgba(79,195,247,0.7)';
+  drawArrow(ctx, vEnd.x, vEnd.y, vvAngle, 6);
+
+  // Satellite
+  ctx.save(); ctx.translate(sx, sy); ctx.rotate(angle);
+  ctx.fillStyle = '#c8d4e0';
+  ctx.fillRect(-5, -2, 10, 4);
+  ctx.fillRect(-2, -5, 4, 10);
+  ctx.fillStyle = '#4fc3f7';
+  ctx.fillRect(-9, -1.5, 4, 3);
+  ctx.fillRect(5, -1.5, 4, 3);
+  ctx.restore();
+
+  // Legend
+  ctx.font = '10px Space Mono, monospace';
+  ctx.fillStyle = 'rgba(239,83,80,0.8)';
+  ctx.fillText('▶ Fuerza gravitatoria (F = GMm/r²)', 12, H_canvas - 36);
+  ctx.fillStyle = 'rgba(79,195,247,0.8)';
+  ctx.fillText('▶ Velocidad orbital', 12, H_canvas - 20);
+
+  // Advance angle
+  let speed = 0.014;
+  if (vPct < 0.6) speed = 0.025;
+  else if (vPct > 1.4) speed = 0.008;
+  angle = (angle + speed) % (Math.PI * 2);
+
+  rafId = requestAnimationFrame(drawSim);
+}
+
+function drawArrow(ctx, x, y, angle, size) {
+  ctx.save(); ctx.translate(x, y); ctx.rotate(angle);
+  ctx.beginPath();
+  ctx.moveTo(0, 0); ctx.lineTo(-size, -size/2); ctx.lineTo(-size, size/2);
+  ctx.closePath(); ctx.fill(); ctx.restore();
+}
+
+function updateSim() {
+  updateLabels();
+  trail = [];
+}
+
+slAlt.addEventListener('input', updateSim);
+slVel.addEventListener('input', updateSim);
+slMasa.addEventListener('input', updateSim);
+updateLabels();
+drawSim();
+
+/* ── ORBIT SELECTOR ── */
+const orbitData = {
+  leo: { vel: '7.8 km/s', per: '90–127 min', lat: '~20 ms' },
+  meo: { vel: '3.9 km/s', per: '~12 h', lat: '~120 ms' },
+  geo: { vel: '3.07 km/s', per: '24 h exactas', lat: '~270 ms' }
+};
+function selectOrbit(key) {
+  document.querySelectorAll('.otype').forEach(o => o.classList.remove('active'));
+  document.getElementById('ot-'+key).classList.add('active');
+  const d = orbitData[key];
+  document.getElementById('od-vel').textContent = d.vel;
+  document.getElementById('od-per').textContent = d.per;
+  document.getElementById('od-lat').textContent = d.lat;
+}
+selectOrbit('leo');
+
+/* ── AUTOEVALUACIÓN ── */
+function toggleEval(el) {
+  el.classList.toggle('done');
+  updateProgress();
+}
+function updateProgress() {
+  const items = document.querySelectorAll('.eval-item');
+  const done = document.querySelectorAll('.eval-item.done').length;
+  const total = items.length;
+  const pct = Math.round(done / total * 100);
+  document.getElementById('prog-fill').style.width = pct + '%';
+  document.getElementById('prog-count').textContent = done + ' / ' + total + ' objetivos';
+  document.getElementById('prog-pct').textContent = pct + '%';
+}
+</script>
+</body>
+</html>
